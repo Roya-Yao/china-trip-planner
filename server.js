@@ -1,7 +1,7 @@
  const express = require('express');
  const fs = require('fs');
  const path = require('path');
- 
+ const { exec } = require('child_process');
  const app = express();
  const PORT = process.env.PORT || 3000;
  const DATA_FILE = path.join(__dirname, 'submissions.json');
@@ -64,7 +64,9 @@
    console.log(`Interests:`);
    console.log(submission.interests);
    console.log('='.repeat(60));
-   console.log('');
+    // Send email notification
+  sendEmailNotification(submission);
+
  
    res.json({ success: true, id: submission.id });
  });
@@ -139,7 +141,29 @@
    html += `</body></html>`;
    res.send(html);
  });
- 
+ function sendEmailNotification(submission) {
+  const subject = 'New Trip Inquiry: ' + submission.name + ' - ' + submission.destinations;
+  const body = 'NEW SUBMISSION\n' +
+    '==============================\n' +
+    'Name:       ' + submission.name + '\n' +
+    'Email:      ' + submission.email + '\n' +
+    'Destinations:\n' + submission.destinations + '\n' +
+    'Dates:      ' + submission.startDate + ' → ' + submission.endDate + '\n' +
+    'Travelers:  ' + submission.travelers + '\n' +
+    '\nInterests:\n' + submission.interests + '\n' +
+    '\nID:         ' + submission.id + '\n' +
+    'Time:       ' + submission.createdAt + '\n' +
+    '==============================';
+  const cmd = 'agently-cli send -t huangxiaojuan@agent.qq.com -s "' + subject + '" -b "' + body + '"';
+  exec(cmd, (err, stdout, stderr) => {
+    if (err) {
+      console.error('Email notification failed:', err.message);
+      return;
+    }
+    console.log('Email notification sent:', stdout.trim());
+  });
+}
+
  app.listen(PORT, () => {
    console.log(`
    ╔══════════════════════════════════════════╗
